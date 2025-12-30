@@ -1,4 +1,5 @@
-﻿using AlquilerAutosApi.Models;
+﻿using AlquilerAutosApi.Data;
+using AlquilerAutosApi.Models;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AlquilerAutosApi.Controllers
@@ -7,47 +8,58 @@ namespace AlquilerAutosApi.Controllers
     [Route("api/autos")]
     public class AutosController : ControllerBase
     {
-        // "Base de datos" en memoria
-        private static List<Auto> autos = new()
-        {
-            new Auto { Id = 1, Marca = "Toyota", Disponible = true },
-            new Auto { Id = 2, Marca = "Mazda", Disponible = true },
-            new Auto { Id = 3, Marca = "Chevrolet", Disponible = false }
-        };
+        private readonly AppDbContext _context;
 
-        // GET: api/autos
-        [HttpGet]
-        public IActionResult GetAutos()
+        public AutosController(AppDbContext context)
         {
-            return Ok(autos);
+            _context = context;
         }
 
-        // POST: api/autos/alquilar/1
+        // GET api/autos
+        [HttpGet]
+        public IActionResult Get()
+        {
+            return Ok(_context.Autos.ToList());
+        }
+
+        // POST api/autos
+        [HttpPost]
+        public IActionResult Create(Auto auto)
+        {
+            auto.Disponible = true;
+            _context.Autos.Add(auto);
+            _context.SaveChanges();
+            return Ok(auto);
+        }
+
+        // POST api/autos/alquilar/1
         [HttpPost("alquilar/{id}")]
         public IActionResult Alquilar(int id)
         {
-            var auto = autos.FirstOrDefault(a => a.Id == id);
+            var auto = _context.Autos.Find(id);
 
             if (auto == null)
-                return NotFound("Auto no existe");
+                return NotFound();
 
             if (!auto.Disponible)
                 return BadRequest("Auto no disponible");
 
             auto.Disponible = false;
+            _context.SaveChanges();
             return Ok("Auto alquilado");
         }
 
-        // POST: api/autos/devolver/1
+        // POST api/autos/devolver/1
         [HttpPost("devolver/{id}")]
         public IActionResult Devolver(int id)
         {
-            var auto = autos.FirstOrDefault(a => a.Id == id);
+            var auto = _context.Autos.Find(id);
 
             if (auto == null)
-                return NotFound("Auto no existe");
+                return NotFound();
 
             auto.Disponible = true;
+            _context.SaveChanges();
             return Ok("Auto devuelto");
         }
     }
